@@ -6,7 +6,7 @@
 # Blog: https://p3terx.com
 #=================================================
 
-name: x-wrt-ax6000-每日构建
+name: immortalwrt-21.02
 
 on:
   repository_dispatch:
@@ -17,21 +17,21 @@ on:
         required: false
         default: 'false'
   schedule:
-    - cron: 0 10 * * *
-  # push:
-  #   branches: [ main ]
+    - cron: 0 3 */7 * *
+  push:
+    branches: [ main ]
 
 env:
-  REPO_AUTHOR: x-wrt
-  REPO_NAME: x-wrt
-  REPO_URL: https://github.com/x-wrt/x-wrt
-  REPO_BRANCH: master
-  DEVICE_SHORT_NAME: ax6000
+  REPO_AUTHOR: immortalwrt
+  REPO_NAME: immortalwrt
+  REPO_URL: https://github.com/immortalwrt/immortalwrtddd
+  REPO_BRANCH: openwrt-21.02
+  DEVICE_SHORT_NAME: x86
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE_4: x-wrt/ax6000/x-wrt-ax6000-v4.config
-  CONFIG_FILE_6: x-wrt/ax6000/x-wrt-ax6000-v6.config
-  DIY_P1_SH: x-wrt/ax6000/diy-xwrt-ax6000-v4-part1.sh
-  DIY_P2_SH: x-wrt/ax6000/diy-xwrt-ax6000-v4-part2.sh
+  CONFIG_FILE_4: immortalwrt/x86/immortalwrt-x86-v4.config
+  CONFIG_FILE_6: immortalwrt/x86/immortalwrt-x86-v6.config
+  DIY_P1_SH: immortalwrt/x86/diy-immortalwrt-part1.sh
+  DIY_P2_SH: immortalwrt/x86/diy-immortalwrt-part2.sh
   SSH_ACTIONS: false
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
@@ -39,9 +39,9 @@ env:
   UPLOAD_WETRANSFER: false
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
-  TOOLCHAIN_NAME: x-wrt-toolchain-mediatek-filogic_gcc-11.3.0_musl.Linux-x86_64.tar.bz2
+  TOOLCHAIN_NAME: $REPO_AUTHOR-$REPO_NAME-toolchain-xxx.tar.bz2
   TOOLCHAIN_PATH: /workdir/openwrt-toolchain-mediatek-filogic_gcc-11.3.0_musl.Linux-x86_64/toolchain-aarch64_cortex-a53_gcc-11.3.0_musl/
-  TOOLCHAIN_DOWNLOAD_URL: https://tinyurl.com/x-wrt-mtk-toolchain
+  TOOLCHAIN_DOWNLOAD_URL: https://tinyurl.com/coolsnowwolf-mtk-toolchain
   USER_TOOLCHAIN: false
 
 jobs:
@@ -64,7 +64,7 @@ jobs:
       run: |
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
         sudo -E apt-get -qq update
-        sudo -E apt-get -qq install $(curl -fsSL https://tinyurl.com/depends-ubuntu-2004)
+        sudo -E apt-get -qq install git #$(curl -fsSL https://tinyurl.com/depends-ubuntu-2004)
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
@@ -77,6 +77,7 @@ jobs:
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
+
 
     - name: 自定义软件源
       run: |
@@ -108,6 +109,7 @@ jobs:
         wget -O /workdir/$TOOLCHAIN_NAME $TOOLCHAIN_DOWNLOAD_URL
         tar -xf /workdir/$TOOLCHAIN_NAME -C /workdir
         cd openwrt
+        wget -O scripts/ext-toolchain.sh https://raw.githubusercontent.com/openwrt/openwrt/master/scripts/ext-toolchain.sh
         ./scripts/ext-toolchain.sh --toolchain $TOOLCHAIN_PATH --overwrite-config --config aarch64_cortex-a53 || true
       if: env.USER_TOOLCHAIN == 'true'
 
@@ -171,7 +173,7 @@ jobs:
       uses: actions/upload-artifact@main
       if: steps.organize_4.outputs.status == 'success' && !cancelled()
       with:
-        name: x-wrt-IPv4${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        name: lede-IPv4${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE_4 }}
 
     - name: 更新v6配置
@@ -218,7 +220,7 @@ jobs:
       uses: actions/upload-artifact@main
       if: steps.organize_6.outputs.status == 'success' && !cancelled()
       with:
-        name: x-wrt-IPv6${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        name: lede-IPv6${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE_6}}
 
     - name: 创建release标签
@@ -228,7 +230,7 @@ jobs:
         echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
         touch release.txt
         echo "精简固件，只安装了很少的软件。" >> release.txt
-        echo "[固件源码](https://github.com/x-wrt/x-wrt)" >> release.txt
+        echo "[固件源码]($REPO_URL)" >> release.txt
         echo "由衷感谢所有为openwrt无私奉献的大佬们" >> release.txt
         echo "**软件清单**" >> release.txt
         echo "luci-app-helloword😁😁😁" >> release.txt
@@ -237,6 +239,7 @@ jobs:
         echo "luci-app-vlmcsd" >> release.txt
         echo "luci-app-autoreboot" >> release.txt
         echo "::set-output name=status::success"
+        echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
     - name: 发布至release
       uses: softprops/action-gh-release@v1
       if: steps.tag.outputs.status == 'success' && !cancelled()
