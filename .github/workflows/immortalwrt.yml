@@ -6,7 +6,7 @@
 # Blog: https://p3terx.com
 #=================================================
 
-name: lede-ax6000-每日构建
+name: immortalwrt-21.02
 
 on:
   repository_dispatch:
@@ -17,18 +17,20 @@ on:
         required: false
         default: 'false'
   schedule:
-    - cron: 0 4 * * *
-  # push:
-  #   branches: [ main ]
+    - cron: 0 3 */7 * *
+  push:
+    branches: [ main ]
 
 env:
-  REPO_URL: https://github.com/coolsnowwolf/lede
-  REPO_BRANCH: master
+  REPO_AUTHOR: immortalwrt
+  REPO_NAME: immortalwrt
+  REPO_URL: https://github.com/immortalwrt/immortalwrtddd
+  REPO_BRANCH: openwrt-21.02
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE_4: lede/ax6000/lede-ax6000-v4.config
-  CONFIG_FILE_6: lede/ax6000/lede-ax6000-v6.config
-  DIY_P1_SH: lede/ax6000/diy-ax6000-part1.sh
-  DIY_P2_SH: lede/ax6000/diy-ax6000-part2.sh
+  CONFIG_FILE_4: immortalwrt/x86/immortalwrt-x86-v4.config
+  CONFIG_FILE_6: immortalwrt/x86/immortalwrt-x86-v6.config
+  DIY_P1_SH: immortalwrt/x86/diy-immortalwrt-part1.sh
+  DIY_P2_SH: immortalwrt/x86/diy-immortalwrt-part2.sh
   SSH_ACTIONS: false
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
@@ -36,10 +38,11 @@ env:
   UPLOAD_WETRANSFER: false
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
-  TOOLCHAIN_NAME: coolsnowwolf-toolchain-mediatek-filogic_gcc-11.3.0_musl.Linux-x86_64.tar.bz2
+  TOOLCHAIN_NAME: $REPO_AUTHOR-$REPO_NAME-toolchain-xxx.tar.bz2
   TOOLCHAIN_PATH: /workdir/openwrt-toolchain-mediatek-filogic_gcc-11.3.0_musl.Linux-x86_64/toolchain-aarch64_cortex-a53_gcc-11.3.0_musl/
   TOOLCHAIN_DOWNLOAD_URL: https://tinyurl.com/coolsnowwolf-mtk-toolchain
   USER_TOOLCHAIN: false
+
 jobs:
   build:
     runs-on: ubuntu-20.04
@@ -60,20 +63,20 @@ jobs:
       run: |
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
         sudo -E apt-get -qq update
-        sudo -E apt-get -qq install $(curl -fsSL https://tinyurl.com/depends-ubuntu-2004)
+        sudo -E apt-get -qq install git
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
 
-    - name: 下载固件源码并自定义dts
+    - name: 下载固件源码
       working-directory: /workdir
       run: |
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
-        wget -O openwrt/target/linux/mediatek/dts/mt7986a-xiaomi-redmi-router-ax6000.dts https://tinyurl.com/x-wrt-ax6000-dts
+
 
     - name: 自定义软件源
       run: |
@@ -226,7 +229,7 @@ jobs:
         echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
         touch release.txt
         echo "精简固件，只安装了很少的软件。" >> release.txt
-        echo "[固件源码](https://github.com/lede/lede)" >> release.txt
+        echo "[固件源码]($REPO_URL)" >> release.txt
         echo "由衷感谢所有为openwrt无私奉献的大佬们" >> release.txt
         echo "**软件清单**" >> release.txt
         echo "luci-app-helloword😁😁😁" >> release.txt
@@ -241,7 +244,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       with:
-        name: 「${{env.FILE_DATE}}」-「 每日构建 」-「 lede-AX6000 」
+        name: 「${{env.FILE_DATE}}」-「 每日构建 」-「 $REPO_AUTHOR $REPO_NAME $DEVICE_NAME 」
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
         files: |
