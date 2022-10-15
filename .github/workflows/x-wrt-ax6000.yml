@@ -17,13 +17,16 @@ on:
         required: false
         default: 'false'
   schedule:
-    - cron: 0 10 * * *
+    - cron: 0 5 * * *
   push:
     branches: [ main ]
 
 env:
+  REPO_AUTHOR: x-wrt
+  REPO_NAME: x-wrt
   REPO_URL: https://github.com/x-wrt/x-wrt
   REPO_BRANCH: master
+  DEVICE_SHORT_NAME: ax6000
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE_4: x-wrt/ax6000/x-wrt-ax6000-v4.config
   CONFIG_FILE_6: x-wrt/ax6000/x-wrt-ax6000-v6.config
@@ -240,7 +243,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       with:
-        name: 「${{env.FILE_DATE}}」-「 每日构建 」-「 x-wrt-AX6000 」
+        name: 「${{env.FILE_DATE}}」-「 每日构建 」-「${{env.REPO_NAME}}-${{env.REPO_BRANCH}}-${{env.DEVICE_SHORT_NAME}}」
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
         files: |
